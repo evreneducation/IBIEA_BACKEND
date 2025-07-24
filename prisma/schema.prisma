@@ -1,0 +1,111 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider        = "prisma-client-js"
+  engineType      = "binary"
+  binaryTargets   = ["native"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Nomination {
+  id              Int      @id @default(autoincrement())
+  fullName        String
+  designation     String
+  organization    String
+  industry        String
+  country         String
+  email           String
+  phone           String
+  category        String
+  achievements    String   @db.Text
+  contributions   String   @db.Text
+  awards          String?  @db.Text
+  supportingDocs  String?
+  createdAt       DateTime @default(now())
+  rsvp            RSVP?
+}
+
+model AdminSession {
+  id           Int      @id @default(autoincrement())
+  adminId      String
+  refreshToken String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  admin        Admin    @relation(fields: [adminId], references: [id])
+
+  @@index([adminId])
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  sessions AdminSession[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Sponsor {
+  id              Int      @id @default(autoincrement())
+  companyName     String
+  contactPerson   String
+  email          String
+  phone          String
+  sponsorshipType String   // "PLATINUM", "GOLD", "SILVER", "SUPPORT"
+  message        String?   @db.Text
+  status         String    @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
+  contribution   String?   // For support sponsors
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  rsvp           RSVP?
+}
+
+model Participant {
+  id              Int      @id @default(autoincrement())
+  fullName        String
+  designation     String
+  organization    String
+  email           String
+  phone           String
+  category        String   // "INDIVIDUAL", "ORGANIZATION"
+  message         String?  @db.Text
+  status          String   @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
+  supportingDocs  String?  // URL to uploaded documents
+  verificationCode String  @unique // Unique code for participant verification
+  isVerified      Boolean @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  rsvp            RSVP?
+}
+
+model RSVP {
+  id                    Int         @id @default(autoincrement())
+  status                String      // "ATTENDING", "NOT_ATTENDING", "MAYBE"
+  attendeeType          String      // "NOMINATION", "PARTICIPANT", "SPONSOR"
+  nominationId          Int?        @unique
+  nomination            Nomination? @relation(fields: [nominationId], references: [id])
+  participantId         Int?        @unique
+  participant           Participant? @relation(fields: [participantId], references: [id])
+  sponsorId             Int?        @unique
+  sponsor               Sponsor?    @relation(fields: [sponsorId], references: [id])
+  reminderSent          Boolean     @default(false)
+  dayBeforeReminderSent Boolean     @default(false)
+  sameDayReminderSent   Boolean     @default(false)
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+}
+
+model DirectoryRequest {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  createdAt DateTime @default(now())
+}
