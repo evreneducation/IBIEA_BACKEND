@@ -4,11 +4,8 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "rimraf dist && tsc && npm run copy-templates",
-    "copy-templates": "copyfiles -u 1 \"src/templates/**/*\" dist",
+    "build": "rimraf dist && tsc",
     "start": "node dist/index.js",
-    "test:rsvp": "ts-node src/test/createBulkParticipants.ts",
-    "test:calendar": "ts-node src/test/sendCalendarEmails.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev"
   },
@@ -54,3 +51,4 @@
     "ts-node-dev": "^2.0.0"
   }
 }
+
