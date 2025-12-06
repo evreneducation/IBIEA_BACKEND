@@ -1,7 +1,8 @@
 import { PrismaClient } from "@prisma/client";
-import { transporter } from "../config/email";
+
 import { generateCalendarButtonHtml, generateEventDetailsHtml } from "../utils/calendarUtils";
 import dotenv from "dotenv";
+import { sendEmail } from "../config/brevo";
 
 dotenv.config();
 
@@ -41,7 +42,7 @@ async function sendCalendarEmail(recipient: any) {
       html: calendarEmailTemplate(recipient)
     };
 
-    await transporter.sendMail(mailOptions);
+    await sendEmail(mailOptions);
     console.log(`Calendar email sent successfully to: ${recipient.email}`);
     return true;
   } catch (error) {
