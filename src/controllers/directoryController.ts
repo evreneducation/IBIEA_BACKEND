@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { transporter } from '../config/email';
 import path from 'path';
+import { sendEmail } from '../config/brevo';
 
 const prisma = new PrismaClient();
 
@@ -27,8 +27,8 @@ export const requestDirectory = async (req: Request, res: Response) => {
     console.log(`[${new Date().toISOString()}] [requestDirectory] Saved to DB.`);
 
     console.log(`[${new Date().toISOString()}] [requestDirectory] Sending admin email...`);
-    await transporter.sendMail({
-      from: EMAIL_USER,
+    await sendEmail({
+      from: process.env.BREVO_FROM_EMAIL,
       to: ADMIN_EMAIL,
       subject: 'New Directory Download Request',
       html: `<p><b>Name:</b> ${name}</p><p><b>Email:</b> ${email}</p>`

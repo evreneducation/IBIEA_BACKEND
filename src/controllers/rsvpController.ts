@@ -1,19 +1,15 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
-import { transporter } from "../config/email";
 import { rsvpConfirmationTemplate } from "../utils/reminderTemplates";
+import { sendEmail } from "../config/brevo";
 
 const prisma = new PrismaClient();
 
 export const createRSVP = async (req: Request, res: Response) => {
   try {
-    const {
-      attendeeType,
-      attendeeId,
-      status,
-    } = req.body;
+    const { attendeeType, attendeeId, status } = req.body;
 
-    if (!['NOMINATION', 'PARTICIPANT', 'SPONSOR'].includes(attendeeType)) {
+    if (!["NOMINATION", "PARTICIPANT", "SPONSOR"].includes(attendeeType)) {
       return res.status(400).json({ error: "Invalid attendee type" });
     }
 
@@ -24,9 +20,9 @@ export const createRSVP = async (req: Request, res: Response) => {
       attendeeType,
     };
 
-    if (attendeeType === 'NOMINATION') {
+    if (attendeeType === "NOMINATION") {
       const nomination = await prisma.nomination.findUnique({
-        where: { id: Number(attendeeId) }
+        where: { id: Number(attendeeId) },
       });
 
       if (!nomination) {
@@ -35,9 +31,9 @@ export const createRSVP = async (req: Request, res: Response) => {
 
       attendeeData = nomination;
       rsvpData.nominationId = Number(attendeeId);
-    } else if (attendeeType === 'PARTICIPANT') {
+    } else if (attendeeType === "PARTICIPANT") {
       const participant = await prisma.participant.findUnique({
-        where: { id: Number(attendeeId) }
+        where: { id: Number(attendeeId) },
       });
 
       if (!participant) {
@@ -46,9 +42,9 @@ export const createRSVP = async (req: Request, res: Response) => {
 
       attendeeData = participant;
       rsvpData.participantId = Number(attendeeId);
-    } else if (attendeeType === 'SPONSOR') {
+    } else if (attendeeType === "SPONSOR") {
       const sponsor = await prisma.sponsor.findUnique({
-        where: { id: Number(attendeeId) }
+        where: { id: Number(attendeeId) },
       });
 
       if (!sponsor) {
@@ -61,49 +57,58 @@ export const createRSVP = async (req: Request, res: Response) => {
 
     // Check if RSVP already exists
     let existingRSVP;
-    
-    if (attendeeType === 'NOMINATION') {
+
+    if (attendeeType === "NOMINATION") {
       existingRSVP = await prisma.rSVP.findFirst({
-        where: { nominationId: Number(attendeeId) }
+        where: { nominationId: Number(attendeeId) },
       });
-    } else if (attendeeType === 'PARTICIPANT') {
+    } else if (attendeeType === "PARTICIPANT") {
       existingRSVP = await prisma.rSVP.findFirst({
-        where: { participantId: Number(attendeeId) }
+        where: { participantId: Number(attendeeId) },
       });
-    } else if (attendeeType === 'SPONSOR') {
+    } else if (attendeeType === "SPONSOR") {
       existingRSVP = await prisma.rSVP.findFirst({
-        where: { sponsorId: Number(attendeeId) }
+        where: { sponsorId: Number(attendeeId) },
       });
     }
 
     let rsvp;
-    
+
     if (existingRSVP) {
       // Update existing RSVP
       rsvp = await prisma.rSVP.update({
         where: { id: existingRSVP.id },
-        data: { status }
+        data: { status },
       });
     } else {
       // Create new RSVP
       rsvp = await prisma.rSVP.create({
-        data: rsvpData
+        data: rsvpData,
       });
     }
 
     // Send confirmation email
-    const email = attendeeType === 'NOMINATION' ? attendeeData?.email : 
-                  attendeeType === 'PARTICIPANT' ? attendeeData?.email : 
-                  attendeeData?.email;
-    
+    const email =
+      attendeeType === "NOMINATION"
+        ? attendeeData?.email
+        : attendeeType === "PARTICIPANT"
+        ? attendeeData?.email
+        : attendeeData?.email;
+
     const rsvpMailOptions = {
       from: process.env.EMAIL_USER,
       to: email,
       subject: "IBIEA 2025 | RSVP Confirmation",
-      html: rsvpConfirmationTemplate(attendeeData, status)
+      html: rsvpConfirmationTemplate(attendeeData, status),
     };
 
-    await transporter.sendMail(rsvpMailOptions);
+    // await transporter.sendMail(rsvpMailOptions);
+    await sendEmail({
+      from: process.env.BREVO_FROM_EMAIL,
+      to: email!,
+      subject: "IBIEA 2025 | RSVP Confirmation",
+      html: rsvpConfirmationTemplate(attendeeData, status),
+    });
 
     res.status(201).json(rsvp);
   } catch (error) {
@@ -124,20 +129,20 @@ export const updateRSVP = async (req: Request, res: Response) => {
         nomination: true,
         participant: true,
         sponsor: true,
-      }
+      },
     });
 
     // Determine attendee data based on the type
     let attendeeData;
     let email;
-    
-    if (rsvp.attendeeType === 'NOMINATION' && rsvp.nomination) {
+
+    if (rsvp.attendeeType === "NOMINATION" && rsvp.nomination) {
       attendeeData = rsvp.nomination;
       email = rsvp.nomination.email;
-    } else if (rsvp.attendeeType === 'PARTICIPANT' && rsvp.participant) {
+    } else if (rsvp.attendeeType === "PARTICIPANT" && rsvp.participant) {
       attendeeData = rsvp.participant;
       email = rsvp.participant.email;
-    } else if (rsvp.attendeeType === 'SPONSOR' && rsvp.sponsor) {
+    } else if (rsvp.attendeeType === "SPONSOR" && rsvp.sponsor) {
       attendeeData = rsvp.sponsor;
       email = rsvp.sponsor.email;
     } else {
@@ -150,10 +155,16 @@ export const updateRSVP = async (req: Request, res: Response) => {
       from: process.env.EMAIL_USER,
       to: email,
       subject: "IBIEA 2025 | RSVP Update Confirmation",
-      html: rsvpConfirmationTemplate(attendeeData, status)
+      html: rsvpConfirmationTemplate(attendeeData, status),
     };
 
-    await transporter.sendMail(rsvpMailOptions);
+    // await transporter.sendMail(rsvpMailOptions);
+    await sendEmail({
+      from: process.env.BREVO_FROM_EMAIL,
+      to: email!,
+      subject: "IBIEA 2025 | RSVP Update Confirmation",
+      html: rsvpConfirmationTemplate(attendeeData, status),
+    });
 
     res.json(rsvp);
   } catch (error) {
@@ -169,7 +180,7 @@ export const getAllRSVPs = async (_req: Request, res: Response) => {
         nomination: true,
         participant: true,
         sponsor: true,
-      }
+      },
     });
 
     res.json(rsvps);
@@ -182,14 +193,14 @@ export const getAllRSVPs = async (_req: Request, res: Response) => {
 export const getRSVPsByStatus = async (req: Request, res: Response) => {
   try {
     const { status } = req.params;
-    
+
     const rsvps = await prisma.rSVP.findMany({
       where: { status },
       include: {
         nomination: true,
         participant: true,
         sponsor: true,
-      }
+      },
     });
 
     res.json(rsvps);
@@ -204,7 +215,7 @@ export const deleteRSVP = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     await prisma.rSVP.delete({
-      where: { id: Number(id) }
+      where: { id: Number(id) },
     });
 
     res.json({ message: "RSVP deleted successfully" });

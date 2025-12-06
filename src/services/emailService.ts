@@ -1,33 +1,67 @@
-import { transporter } from "../config/email";
-import { nominationAdminNotificationTemplate, nominationConfirmationTemplate, sponsorAdminNotificationTemplate, sponsorConfirmationTemplate, participantAdminNotificationTemplate, participantConfirmationTemplate } from "../utils/emailTemplates";
-import path from 'path';
+import { sendEmail } from "../config/brevo";
+import fs from "fs";
+import {
+  nominationAdminNotificationTemplate,
+  nominationConfirmationTemplate,
+  sponsorAdminNotificationTemplate,
+  sponsorConfirmationTemplate,
+  participantAdminNotificationTemplate,
+  participantConfirmationTemplate,
+} from "../utils/emailTemplates";
+import path from "path";
+
+const fileToAttachment = (
+  filePath: string,
+  filename: string,
+  contentType = "application/octet-stream"
+) => {
+  const content = fs.readFileSync(filePath).toString("base64");
+  return { filename, content, contentType };
+};
+
+const bufferToAttachment = (
+  buffer: Buffer,
+  filename: string,
+  contentType = "application/pdf"
+) => {
+  const content = buffer.toString("base64");
+  return { filename, content, contentType };
+};
 
 const getBrochureAttachment = () => ({
-  filename: 'IBIEA2025_Brochure.pdf',
-  path: path.join(process.cwd(), 'public/assets/email-assets/IBIEA_2025_BROCHURE.pdf'),
-  contentType: 'application/pdf'
+  filename: "IBIEA2025_Brochure.pdf",
+  path: path.join(
+    process.cwd(),
+    "public/assets/email-assets/IBIEA_2025_BROCHURE.pdf"
+  ),
+  contentType: "application/pdf",
 });
 
 const getSponsorBrochureAttachment = () => ({
-  filename: 'IBIEA2025_Brochure.pdf',
-  path: path.join(process.cwd(), 'public/assets/email-assets/IBIEA_2025_SPONSOR_BROCHURE.pdf'),
-  contentType: 'application/pdf'
+  filename: "IBIEA2025_Brochure.pdf",
+  path: path.join(
+    process.cwd(),
+    "public/assets/email-assets/IBIEA_2025_SPONSOR_BROCHURE.pdf"
+  ),
+  contentType: "application/pdf",
 });
 
 const getParticipationBrochureAttachment = () => ({
-  filename: 'IBIEA2025_Brochure.pdf',
-  path: path.join(process.cwd(), 'public/assets/email-assets/IBIEA_2025_PARTICIPATION_BROCHURE.pdf'),
-  contentType: 'application/pdf'
+  filename: "IBIEA2025_Brochure.pdf",
+  path: path.join(
+    process.cwd(),
+    "public/assets/email-assets/IBIEA_2025_PARTICIPATION_BROCHURE.pdf"
+  ),
+  contentType: "application/pdf",
 });
 
 export async function sendNominationRegistrationEmail(nominationData: any) {
-
   const nominationMailOptions = {
     from: process.env.EMAIL_USER,
     to: nominationData.email,
     subject: "IBIEA 2025 | Nomination Submission Confirmation",
     html: nominationConfirmationTemplate(nominationData),
-    attachments: [getBrochureAttachment()]
+    attachments: [getBrochureAttachment()],
   };
 
   const adminMailOptions = {
@@ -35,13 +69,48 @@ export async function sendNominationRegistrationEmail(nominationData: any) {
     to: process.env.ADMIN_EMAIL,
     subject: `New Nomination Registration: ${nominationData.fullName}`,
     html: nominationAdminNotificationTemplate(nominationData),
-    attachments: [getBrochureAttachment()]
+    attachments: [getBrochureAttachment()],
   };
 
   try {
+    // await Promise.all([
+    //   transporter.sendMail(nominationMailOptions),
+    //   transporter.sendMail(adminMailOptions),
+    // ]);
+
     await Promise.all([
-      transporter.sendMail(nominationMailOptions),
-      transporter.sendMail(adminMailOptions),
+      sendEmail({
+        from: process.env.BREVO_FROM_EMAIL,
+        to: nominationData.email,
+        subject: "IBIEA 2025 | Nomination Submission Confirmation",
+        html: nominationConfirmationTemplate(nominationData),
+        attachments: [
+          fileToAttachment(
+            path.join(
+              process.cwd(),
+              "public/assets/email-assets/IBIEA_2025_BROCHURE.pdf"
+            ),
+            "IBIEA2025_Brochure.pdf",
+            "application/pdf"
+          ),
+        ],
+      }),
+      sendEmail({
+        from: process.env.BREVO_FROM_EMAIL,
+        to: process.env.ADMIN_EMAIL!,
+        subject: `New Nomination Registration: ${nominationData.fullName}`,
+        html: nominationAdminNotificationTemplate(nominationData),
+        attachments: [
+          fileToAttachment(
+            path.join(
+              process.cwd(),
+              "public/assets/email-assets/IBIEA_2025_BROCHURE.pdf"
+            ),
+            "IBIEA2025_Brochure.pdf",
+            "application/pdf"
+          ),
+        ],
+      }),
     ]);
 
     console.log(
@@ -65,7 +134,7 @@ export async function sendSponsorRegistrationEmail(sponsorData: any) {
     to: sponsorData.email,
     subject: "IBIEA 2025 | Sponsorship Application Confirmation",
     html: sponsorConfirmationTemplate(sponsorData),
-    attachments: [getSponsorBrochureAttachment()]
+    attachments: [getSponsorBrochureAttachment()],
   };
 
   const adminMailOptions = {
@@ -73,13 +142,48 @@ export async function sendSponsorRegistrationEmail(sponsorData: any) {
     to: process.env.ADMIN_EMAIL,
     subject: `New Sponsorship Application: ${sponsorData.companyName}`,
     html: sponsorAdminNotificationTemplate(sponsorData),
-    attachments: [getSponsorBrochureAttachment()]
+    attachments: [getSponsorBrochureAttachment()],
   };
 
   try {
+    // await Promise.all([
+    //   transporter.sendMail(sponsorMailOptions),
+    //   transporter.sendMail(adminMailOptions),
+    // ]);
+
     await Promise.all([
-      transporter.sendMail(sponsorMailOptions),
-      transporter.sendMail(adminMailOptions),
+      sendEmail({
+        from: process.env.BREVO_FROM_EMAIL,
+        to: sponsorData.email,
+        subject: "IBIEA 2025 | Sponsorship Application Confirmation",
+        html: sponsorConfirmationTemplate(sponsorData),
+        attachments: [
+          fileToAttachment(
+            path.join(
+              process.cwd(),
+              "public/assets/email-assets/IBIEA_2025_SPONSOR_BROCHURE.pdf"
+            ),
+            "IBIEA2025_Brochure.pdf",
+            "application/pdf"
+          ),
+        ],
+      }),
+      sendEmail({
+        from: process.env.BREVO_FROM_EMAIL,
+        to: process.env.ADMIN_EMAIL!,
+        subject: `New Sponsorship Application: ${sponsorData.companyName}`,
+        html: sponsorAdminNotificationTemplate(sponsorData),
+        attachments: [
+          fileToAttachment(
+            path.join(
+              process.cwd(),
+              "public/assets/email-assets/IBIEA_2025_SPONSOR_BROCHURE.pdf"
+            ),
+            "IBIEA2025_Brochure.pdf",
+            "application/pdf"
+          ),
+        ],
+      }),
     ]);
 
     console.log(
@@ -96,7 +200,10 @@ export async function sendSponsorRegistrationEmail(sponsorData: any) {
   }
 }
 
-export async function sendParticipantRegistrationEmail(participantData: any, pdfBuffer: Buffer) {
+export async function sendParticipantRegistrationEmail(
+  participantData: any,
+  pdfBuffer: Buffer
+) {
   const participantMailOptions = {
     from: process.env.EMAIL_USER,
     to: participantData.email,
@@ -106,10 +213,10 @@ export async function sendParticipantRegistrationEmail(participantData: any, pdf
       {
         filename: `IBIEA2025_Participant_${participantData.verificationCode}.pdf`,
         content: pdfBuffer,
-        contentType: 'application/pdf'
+        contentType: "application/pdf",
       },
-      getParticipationBrochureAttachment()
-    ]
+      getParticipationBrochureAttachment(),
+    ],
   };
 
   const adminMailOptions = {
@@ -121,16 +228,61 @@ export async function sendParticipantRegistrationEmail(participantData: any, pdf
       {
         filename: `IBIEA2025_Participant_${participantData.verificationCode}.pdf`,
         content: pdfBuffer,
-        contentType: 'application/pdf'
+        contentType: "application/pdf",
       },
-      getParticipationBrochureAttachment()
-    ]
+      getParticipationBrochureAttachment(),
+    ],
   };
 
   try {
+    // await Promise.all([
+    //   transporter.sendMail(participantMailOptions),
+    //   transporter.sendMail(adminMailOptions),
+    // ]);
+
     await Promise.all([
-      transporter.sendMail(participantMailOptions),
-      transporter.sendMail(adminMailOptions),
+      sendEmail({
+        from: process.env.BREVO_FROM_EMAIL,
+        to: participantData.email,
+        subject: "IBIEA 2025 | Participation Application Confirmation",
+        html: participantConfirmationTemplate(participantData),
+        attachments: [
+          bufferToAttachment(
+            pdfBuffer,
+            `IBIEA2025_Participant_${participantData.verificationCode}.pdf`,
+            "application/pdf"
+          ),
+          fileToAttachment(
+            path.join(
+              process.cwd(),
+              "public/assets/email-assets/IBIEA_2025_PARTICIPATION_BROCHURE.pdf"
+            ),
+            "IBIEA2025_Brochure.pdf",
+            "application/pdf"
+          ),
+        ],
+      }),
+      sendEmail({
+        from: process.env.BREVO_FROM_EMAIL,
+        to: process.env.ADMIN_EMAIL!,
+        subject: `New Participation Application: ${participantData.fullName}`,
+        html: participantAdminNotificationTemplate(participantData),
+        attachments: [
+          bufferToAttachment(
+            pdfBuffer,
+            `IBIEA2025_Participant_${participantData.verificationCode}.pdf`,
+            "application/pdf"
+          ),
+          fileToAttachment(
+            path.join(
+              process.cwd(),
+              "public/assets/email-assets/IBIEA_2025_PARTICIPATION_BROCHURE.pdf"
+            ),
+            "IBIEA2025_Brochure.pdf",
+            "application/pdf"
+          ),
+        ],
+      }),
     ]);
 
     console.log(
